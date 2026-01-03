@@ -211,9 +211,9 @@ Water scarcity affects **2.2 billion people** worldwide. By leveraging data engi
 
 ## 📧 Contact
 
-**Project Maintainer:** Your Name  
-**Email:** your.email@example.com  
-**GitHub:** [@yourusername](https://github.com/yourusername)
+**Project Maintainer:** Isaac Mwesigwa 
+**Email:** mwesigwaisaac40@gmail.com  
+**GitHub:** [@IsaacJM03](https://github.com/isaacjm03)
 
 ---
 
