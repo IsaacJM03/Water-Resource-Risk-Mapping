@@ -1,0 +1,5 @@
+.env
+*.pyc
+*.mako
+venv/
+__pycache__/
