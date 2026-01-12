@@ -4,8 +4,10 @@ from app.core.database import SessionLocal
 from app.models.water_source import WaterSource
 from app.models.risk_history import RiskHistory
 from app.services.risk_engine import calculate_risk
-from app.utils.logger import logger
+from app.utils.logger import get_logger
 from app.services.alerts import evaluate_alert
+
+logger = get_logger()
 from app.services.environment_simulator import (
     simulate_rainfall,
     simulate_water_level

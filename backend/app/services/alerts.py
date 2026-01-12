@@ -1,5 +1,6 @@
-from app.utils.logger import logger
+from app.utils.logger import get_logger
 
+logger = get_logger()
 CRITICAL_RISK_THRESHOLD = 80
 
 def evaluate_alert(risk_score, source_name):

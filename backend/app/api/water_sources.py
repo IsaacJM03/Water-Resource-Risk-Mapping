@@ -72,3 +72,4 @@ def risk_history(source_id: int, db: Session = Depends(get_db)):
         }
         for h in history
     ]
+
