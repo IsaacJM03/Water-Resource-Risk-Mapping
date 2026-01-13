@@ -27,7 +27,7 @@ def forecast(source_id: int, db=Depends(get_db)):
     history = (
         db.query(RiskHistory)
         .filter(RiskHistory.water_source_id == source_id)
-        .order_by(RiskHistory.created_at)
+        .order_by(RiskHistory.recorded_at)
         .all()
     )
 

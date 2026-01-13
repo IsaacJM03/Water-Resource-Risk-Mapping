@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from app.core.database import get_db
 from app.models.alert import Alert
 
@@ -15,7 +15,9 @@ def list_alerts(db=Depends(get_db)):
 
 @router.post("/{alert_id}/ack")
 def acknowledge_alert(alert_id: int, db=Depends(get_db)):
-    alert = db.query(Alert).get(alert_id)
+    alert = db.query(Alert).filter(Alert.id == alert_id).first()
+    if not alert:
+        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
     alert.acknowledged = True
     db.commit()
     return {"status": "acknowledged"}
