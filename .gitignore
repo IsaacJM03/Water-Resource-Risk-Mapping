@@ -3,3 +3,4 @@
 *.mako
 venv/
 __pycache__/
+backend/logs/app.log
