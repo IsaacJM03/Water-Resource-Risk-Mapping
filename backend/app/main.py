@@ -7,7 +7,7 @@ from .utils.logger import get_logger
 from app.core.scheduler import start_scheduler
 from fastapi import Request
 from .api.water_sources import get_db
-from app.api.routes import water, analytics, alerts,dashboard
+from app.api.routes import water, analytics, alerts,dashboard,realtime
 
 app = FastAPI(title="Water Risk API", version="v1")
 
@@ -17,6 +17,7 @@ app.include_router(analytics.router, prefix="/analytics", tags=["analytics"])
 app.include_router(alerts.router, tags=["alerts"])
 app.include_router(water_sources.router, prefix="/water-sources", tags=["water-sources"])
 app.include_router(dashboard.router, tags=["dashboard"])
+app.include_router(realtime.router)
 logger = get_logger()
 
 
