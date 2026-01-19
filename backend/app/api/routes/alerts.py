@@ -4,7 +4,7 @@ from app.models.alert import Alert
 from app.models.water_source import WaterSource
 from app.models.risk_history import RiskHistory
 from app.services.risk_engine import calculate_risk
-from backend.app.api.deps import require_roles
+from app.api.deps import require_roles
 
 router = APIRouter(prefix="/alerts")
 

@@ -2,9 +2,13 @@ fastapi
 uvicorn[standard]
 sqlalchemy
 pydantic
+pydantic-settings
 pandas
 numpy
 python-dotenv
 python-jose[cryptography]
 passlib[bcrypt]
 pymysql
+alembic
+apscheduler
+scikit-learn
