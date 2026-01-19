@@ -12,3 +12,11 @@ class WaterSourceOut(WaterSourceCreate):
 
     class Config:
         orm_mode = True
+
+class WaterSourceDashboard(BaseModel):
+    id: int
+    name: str
+    risk_score: float
+    trend: str
+    forecast: float | None
+    status: str
