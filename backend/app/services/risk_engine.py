@@ -1,22 +1,15 @@
-# from ..schemas.water_source import WaterSourceRead
-
-
-# def compute_risk_score(source: WaterSourceRead) -> float:
-#     """Placeholder risk calculation combining capacity and quality."""
-#     return max(0.0, min(1.0, (source.quality_index / 100.0) * 0.7 + (source.capacity / 1000.0) * 0.3))
 from app.realtime.broadcaster import broadcast_risk_update
 from app.services.dashboard_builder import build_source_dashboard
+from app.explainability.engine import explain_risk
+from app.services.trends import calculate_trend
 
-
-async def update_risk(source, new_score, db):
-    source.risk_score = new_score
-    db.commit()
-
-    payload = build_source_dashboard(source, db)
-
-    await broadcast_risk_update(source.id, payload)
 
 def calculate_risk(rainfall: float, water_level: float) -> int:
+    """
+    PURE FUNCTION
+    No DB
+    No side effects
+    """
     risk = 0
 
     if rainfall < 50:
@@ -25,3 +18,37 @@ def calculate_risk(rainfall: float, water_level: float) -> int:
         risk += 60
 
     return min(risk, 100)
+
+
+async def update_risk(source, new_score: int, db):
+    """
+    ORCHESTRATION FUNCTION
+    Coordinates everything AFTER risk changes
+    """
+
+    # 1️⃣ Persist risk
+    source.risk_score = new_score
+    db.commit()
+
+    # 2️⃣ Calculate trend (from history)
+    recent_scores = [
+        r.risk_score for r in source.risk_history[-5:]
+    ]
+    trend = calculate_trend(recent_scores)
+
+    # 3️⃣ Generate explanation (THIS IS STEP 6)
+    explanation = explain_risk(
+        source=source,
+        risk_score=new_score,
+        trend=trend
+    )
+
+    # (optional) persist explanation later
+    # db.add(RiskExplanationModel(...))
+
+    # 4️⃣ Build dashboard payload
+    payload = build_source_dashboard(source, db)
+    payload["explanation"] = explanation.dict()
+
+    # 5️⃣ Broadcast realtime update
+    await broadcast_risk_update(source.id, payload)
