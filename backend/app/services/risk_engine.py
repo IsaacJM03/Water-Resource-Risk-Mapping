@@ -2,6 +2,8 @@ from app.realtime.broadcaster import broadcast_risk_update
 from app.services.dashboard_builder import build_source_dashboard
 from app.explainability.engine import explain_risk
 from app.services.trends import calculate_trend
+from app.services.alerts import evaluate_alert, create_or_update_alert
+from app.services.alert_engine import determine_alert_level
 
 
 def calculate_risk(rainfall: float, water_level: float) -> int:
@@ -42,6 +44,17 @@ async def update_risk(source, new_score: int, db):
         risk_score=new_score,
         trend=trend
     )
+
+
+    if evaluate_alert(new_score):
+        level = determine_alert_level(new_score)
+
+        create_or_update_alert(
+            db=db,
+            source=source,
+            risk_score=new_score,
+            level=level
+        )
 
     # (optional) persist explanation later
     # db.add(RiskExplanationModel(...))

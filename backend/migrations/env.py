@@ -25,6 +25,7 @@ if config.config_file_name is not None:
 from app.core.database import Base
 from app.models.water_source import WaterSource
 from app.models.risk_history import RiskHistory
+from app.models.organization import Organization 
 
 target_metadata = Base.metadata
 

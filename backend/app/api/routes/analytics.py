@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends
 from app.models.risk_history import RiskHistory
-from app.api.water_sources import get_db
+from backend.app.api.routes.water_sources import get_db
 from app.ml.predictor import forecast_risk
 from app.services.trends import calculate_trend
 

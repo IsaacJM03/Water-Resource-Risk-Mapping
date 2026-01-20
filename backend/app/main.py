@@ -2,11 +2,11 @@ from fastapi import FastAPI, Depends
 
 from app.models.water_source import WaterSource
 
-from .api import water_sources
+from .api.routes import water_sources
 from .utils.logger import get_logger
 from app.core.scheduler import start_scheduler
 from fastapi import Request
-from .api.water_sources import get_db
+from .api.routes.water_sources import get_db
 from app.api.routes import water, analytics, alerts,dashboard,realtime,explanations
 
 app = FastAPI(title="Water Risk API", version="v1")

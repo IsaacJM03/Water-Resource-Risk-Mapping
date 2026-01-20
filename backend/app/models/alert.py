@@ -10,4 +10,9 @@ class Alert(Base):
     level = Column(String(20))  # low, medium, high, critical
     message = Column(String(255))
     acknowledged = Column(Boolean, default=False)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=False
+    )
     created_at = Column(DateTime, default=datetime.utcnow)

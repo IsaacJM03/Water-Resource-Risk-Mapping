@@ -34,8 +34,8 @@ def create_water_source(payload: WaterSourceCreate, db: Session = Depends(get_db
     return source
 
 @router.get("/")
-def list_sources(db: Session = Depends(get_db)):
-    sources = db.query(WaterSource).all()
+def list_sources(org_id: int, db: Session = Depends(get_db)):
+    sources = db.query(WaterSource).filter(WaterSource.organization_id == org_id).all()
     results = []
 
     for source in sources:
@@ -57,12 +57,14 @@ def list_sources(db: Session = Depends(get_db)):
     return results
 
 @router.get("/{source_id}/risk-history")
-def risk_history(source_id: int, db: Session = Depends(get_db)):
+def risk_history(source_id: int, org_id: int, db: Session = Depends(get_db)):
     history = (
         db.query(RiskHistory)
         .filter(RiskHistory.water_source_id == source_id)
         .order_by(RiskHistory.recorded_at.asc())
-        .all()
+        .filter(
+            WaterSource.organization_id == org_id
+        ).all()
     )
 
     return [

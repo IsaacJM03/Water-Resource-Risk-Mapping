@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey
 from datetime import datetime
 from app.core.database import Base
 
@@ -11,4 +11,9 @@ class WaterSource(Base):
     longitude = Column(Float, nullable=False)
     water_level = Column(Float)
     rainfall = Column(Float)
+    organization_id = Column(
+        Integer,
+        ForeignKey("organizations.id"),
+        nullable=False
+    )
     last_updated = Column(DateTime, default=datetime.utcnow)
