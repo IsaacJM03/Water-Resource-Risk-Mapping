@@ -1,6 +1,21 @@
-import apiClient from './apiClient';
+import { apiClient } from "./apiClient";
 
-export const getSources = async () => {
-  const response = await apiClient.get('/sources');
-  return response.data;
-};
+/** Backend water source shape */
+export interface WaterSource {
+  id: number;
+  name: string;
+  rainfall: number;
+  water_level: number;
+  risk_score: number;
+  updated_at: string;
+}
+
+/** Fetch all water sources */
+export async function fetchSources(): Promise<WaterSource[]> {
+  return apiClient.get<WaterSource[]>("/sources");
+}
+
+/** Fetch one water source */
+export async function fetchSourceById(id: number): Promise<WaterSource> {
+  return apiClient.get<WaterSource>(`/sources/${id}`);
+}

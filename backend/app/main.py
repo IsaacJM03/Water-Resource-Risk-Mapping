@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Depends
 
 from app.models.water_source import WaterSource
-
+from fastapi.middleware.cors import CORSMiddleware
 from .api.routes import water_sources
 from .utils.logger import get_logger
 from app.core.scheduler import start_scheduler
@@ -10,6 +10,18 @@ from .api.routes.water_sources import get_db
 from app.api.routes import water, analytics, alerts,dashboard,realtime,explanations,auth
 
 app = FastAPI(title="Water Risk API", version="v1")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:8081",
+        "http://127.0.0.1:8081",
+        "http://localhost:19006",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Register routers
 app.include_router(water.router, prefix="/sources", tags=["water"])
