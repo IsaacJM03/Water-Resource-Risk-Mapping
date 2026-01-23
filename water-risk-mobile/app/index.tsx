@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { fetchSources, WaterSource } from "../services/sources";
+import { Link } from "expo-router";
 
 export default function Dashboard() {
   const [sources, setSources] = useState<WaterSource[]>([]);
@@ -26,12 +27,14 @@ export default function Dashboard() {
         data={sources}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.name}>{item.name}</Text>
-            <Text>Risk: {item.risk_score}%</Text>
-            <Text>Rainfall: {item.rainfall} mm</Text>
-            <Text>Water Level: {item.water_level} m</Text>
-          </View>
+          <Link href={`/sources/${item.id}`} asChild>
+            <View style={styles.card}>
+              <Text style={styles.name}>{item.name}</Text>
+              <Text>Risk: {item.risk_score}%</Text>
+              <Text>Rainfall: {item.rainfall} mm</Text>
+              <Text>Water Level: {item.water_level} m</Text>
+            </View>
+          </Link>
         )}
       />
     </View>
