@@ -1,49 +1,52 @@
-import { apiClient } from "@/services/apiClient";
-import { fetchSources } from "@/services/sources";
-import React, { useEffect } from "react";
-import { View, Text } from "react-native";
 
+import { useEffect, useState } from "react";
+import { View, Text, FlatList, StyleSheet } from "react-native";
+import { fetchSources, WaterSource } from "../services/sources";
 
-export default function Index() {
-  useEffect(() => {
-    apiClient.get("/health")
-      .then((data) => {
-        console.log("Health check:", data);
-      })
-      .catch(console.error);
-  }, []);
+export default function Dashboard() {
+  const [sources, setSources] = useState<WaterSource[]>([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     fetchSources()
-      .then((sources) => {
-        console.log("Sources:", sources);
-      })
-      .catch(console.error);
+      .then(setSources)
+      .catch(console.error)
+      .finally(() => setLoading(false));
   }, []);
-  
+
+  if (loading) {
+    return <Text style={styles.center}>Loading...</Text>;
+  }
 
   return (
-    <View>
-      <Text>Dashboard</Text>
+    <View style={styles.container}>
+      <Text style={styles.title}>Water Risk Dashboard</Text>
+
+      <FlatList
+        data={sources}
+        keyExtractor={(item) => item.id.toString()}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <Text style={styles.name}>{item.name}</Text>
+            <Text>Risk: {item.risk_score}%</Text>
+            <Text>Rainfall: {item.rainfall} mm</Text>
+            <Text>Water Level: {item.water_level} m</Text>
+          </View>
+        )}
+      />
     </View>
   );
 }
-// import React from 'react';
-// import { View, Text, StyleSheet } from 'react-native';
 
-// const Dashboard = () => {
-//   return (
-//     <View style={styles.container}>
-//       <Text>Dashboard</Text>
-//     </View>
-//   );
-// };
-
-// const styles = StyleSheet.create({
-//   container: {
-//     flex: 1,
-//     justifyContent: 'center',
-//     alignItems: 'center',
-//   },
-// });
-
-// export default Dashboard;
+const styles = StyleSheet.create({
+  container: { padding: 16 },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 12 },
+  card: {
+    padding: 12,
+    marginBottom: 10,
+    borderRadius: 8,
+    backgroundColor: "#f1f5f9",
+  },
+  name: { fontSize: 16, fontWeight: "600" },
+  center: { marginTop: 40, textAlign: "center" },
+});
