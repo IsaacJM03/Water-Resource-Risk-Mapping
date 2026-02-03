@@ -9,6 +9,7 @@ export interface WaterSource {
   latitude: number;
   longitude: number;
   risk_score: number;
+  organization_id: number;
   updated_at: string;
   last_updated: string;
 }
