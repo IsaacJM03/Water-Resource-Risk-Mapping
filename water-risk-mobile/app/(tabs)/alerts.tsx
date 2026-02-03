@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
-import { fetchAlerts, Alert } from "../services/alerts";
+import { fetchAlerts, Alert } from "../../services/alerts";
 
 export default function AlertsScreen() {
   const [alerts, setAlerts] = useState<Alert[]>([]);
