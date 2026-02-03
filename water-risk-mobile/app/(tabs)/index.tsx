@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
 import { fetchSources, WaterSource } from "../../services/sources";
 import { Link } from "expo-router";
+import RiskBadge from "../../components/RiskBadge";
+
 
 export default function Dashboard() {
   const [sources, setSources] = useState<WaterSource[]>([]);
@@ -29,6 +31,7 @@ export default function Dashboard() {
         renderItem={({ item }) => (
           <Link href={`/sources/${item.id}`} asChild>
             <View style={styles.card}>
+              <RiskBadge risk={item.risk_score} />
               <Text style={styles.name}>{item.name}</Text>
               <Text>Risk: {item.risk_score}%</Text>
               <Text>Rainfall: {item.rainfall} mm</Text>

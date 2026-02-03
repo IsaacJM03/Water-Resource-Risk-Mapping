@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { fetchSourceById, WaterSource } from "../../services/sources";
+import RiskBadge from "../../components/RiskBadge";
+
 
 export default function SourceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -22,7 +24,7 @@ export default function SourceDetail() {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{source.name}</Text>
-
+      <RiskBadge risk={source.risk_score} />
       <Text>Risk Score: {source.risk_score}%</Text>
       <Text>Rainfall: {source.rainfall} mm</Text>
       <Text>Water Level: {source.water_level} m</Text>
