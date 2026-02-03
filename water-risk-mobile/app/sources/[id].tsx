@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
-import { fetchSourceById, WaterSource } from "../../services/sources";
+import { fetchForecast, fetchSourceById, WaterSource } from "../../services/sources";
 import RiskBadge from "../../components/RiskBadge";
 import { useAuth } from "../../context/AuthContext";
 
@@ -15,6 +15,7 @@ function formatDate(input: unknown) {
 export default function SourceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { role } = useAuth();
+  const [forecast, setForecast] = useState<number | null>(null);
   const [source, setSource] = useState<WaterSource | null>(null);
 
   useEffect(() => {
@@ -23,6 +24,9 @@ export default function SourceDetail() {
     fetchSourceById(Number(id))
       .then(setSource)
       .catch(console.error);
+
+    fetchForecast(Number(id)).then(setForecast);
+
   }, [id]);
 
   if (!source) {
@@ -36,6 +40,12 @@ export default function SourceDetail() {
       <Text>Risk Score: {source.risk_score}%</Text>
       <Text>Rainfall: {source.rainfall} mm</Text>
       <Text>Water Level: {source.water_level} m</Text>
+      {forecast && (
+        <Text style={{ marginTop: 10 }}>
+          Forecasted Risk: {forecast}%
+        </Text>
+      )}
+
 
       <Text style={styles.meta}>
         Last updated: {formatDate(source?.last_updated)}
