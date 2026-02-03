@@ -4,6 +4,7 @@ import { View, Text, FlatList, StyleSheet } from "react-native";
 import { fetchSources, WaterSource } from "../../services/sources";
 import { Link } from "expo-router";
 import RiskBadge from "../../components/RiskBadge";
+import { connectRealtime, disconnectRealtime } from "../../services/realtime";
 
 
 export default function Dashboard() {
@@ -15,6 +16,18 @@ export default function Dashboard() {
       .then(setSources)
       .catch(console.error)
       .finally(() => setLoading(false));
+
+      connectRealtime((payload) => {
+        if (payload.type === "risk_update") {
+          setSources((prev) =>
+            prev.map((s) =>
+              s.id === payload.source_id ? payload.data : s
+            )
+          );
+        }
+      });
+    
+      return () => disconnectRealtime();
   }, []);
 
   if (loading) {
