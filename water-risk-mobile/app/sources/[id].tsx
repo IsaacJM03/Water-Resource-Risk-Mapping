@@ -3,6 +3,8 @@ import { View, Text, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { fetchSourceById, WaterSource } from "../../services/sources";
 import RiskBadge from "../../components/RiskBadge";
+import { useAuth } from "../../context/AuthContext";
+
 
 function formatDate(input: unknown) {
   if (!input) return "—";
@@ -12,6 +14,7 @@ function formatDate(input: unknown) {
 
 export default function SourceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { role } = useAuth();
   const [source, setSource] = useState<WaterSource | null>(null);
 
   useEffect(() => {
@@ -37,6 +40,12 @@ export default function SourceDetail() {
       <Text style={styles.meta}>
         Last updated: {formatDate(source?.last_updated)}
       </Text>
+
+      {role === "admin" && (
+        <Text style={{ marginTop: 12, color: "red" }}>
+          Admin actions enabled
+        </Text>
+      )}
     </View>
   );
 }
