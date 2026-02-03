@@ -4,6 +4,11 @@ import { useLocalSearchParams } from "expo-router";
 import { fetchSourceById, WaterSource } from "../../services/sources";
 import RiskBadge from "../../components/RiskBadge";
 
+function formatDate(input: unknown) {
+  if (!input) return "—";
+  const d = input instanceof Date ? input : new Date(String(input));
+  return Number.isNaN(d.getTime()) ? "—" : d.toLocaleString();
+}
 
 export default function SourceDetail() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,7 +35,7 @@ export default function SourceDetail() {
       <Text>Water Level: {source.water_level} m</Text>
 
       <Text style={styles.meta}>
-        Last updated: {new Date(source.updated_at).toLocaleString()}
+        Last updated: {formatDate(source?.last_updated)}
       </Text>
     </View>
   );

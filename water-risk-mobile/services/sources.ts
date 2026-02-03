@@ -8,6 +8,7 @@ export interface WaterSource {
   water_level: number;
   risk_score: number;
   updated_at: string;
+  last_updated: string;
 }
 
 /** Fetch all water sources */
