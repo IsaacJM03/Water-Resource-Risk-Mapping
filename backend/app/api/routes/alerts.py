@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
+from requests import Session
 from app.core.database import get_db
 from app.models.alert import Alert
 from app.models.water_source import WaterSource
 from app.models.risk_history import RiskHistory
 from app.services.risk_engine import calculate_risk
-from app.api.deps import require_roles
+from app.api.deps import get_current_user, require_roles
+from backend.app.models.user import User
 
 router = APIRouter(prefix="/alerts")
 
@@ -106,3 +108,41 @@ def forecast(source_id: int, db=Depends(get_db)):
 )
 def forecast(source_id: int, db=Depends(get_db)):
     ...
+
+from app.services.push_notifications import PushNotificationService
+
+@router.post("/", response_model=AlertResponse)
+def create_alert(
+    alert: AlertCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new alert and send push notifications if critical"""
+    # Get water source
+    source = db.query(WaterSource).filter(WaterSource.id == alert.water_source_id).first()
+    if not source:
+        raise HTTPException(status_code=404, detail="Water source not found")
+
+    # Create alert
+    db_alert = Alert(
+        water_source_id=alert.water_source_id,
+        level=alert.level,
+        message=alert.message,
+        organization_id=current_user.organization_id,
+    )
+    db.add(db_alert)
+    db.commit()
+    db.refresh(db_alert)
+
+    # Send push notification if critical or high
+    if alert.level in ["critical", "high"]:
+        risk_score = source.risk_score or 0
+        PushNotificationService.send_alert_notification(
+            db=db,
+            alert_id=db_alert.id,
+            source_name=source.name,
+            risk_score=risk_score,
+            level=alert.level
+        )
+
+    return db_alert
