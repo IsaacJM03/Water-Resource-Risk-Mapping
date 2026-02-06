@@ -1,148 +1,191 @@
-from fastapi import APIRouter, Depends, HTTPException
-from requests import Session
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+from typing import List
 from app.core.database import get_db
 from app.models.alert import Alert
 from app.models.water_source import WaterSource
-from app.models.risk_history import RiskHistory
-from app.services.risk_engine import calculate_risk
-from app.api.deps import get_current_user, require_roles
-from backend.app.models.user import User
-
-router = APIRouter(prefix="/alerts")
-
-@router.get("/")
-def list_alerts(db=Depends(get_db)):
-    """List all unacknowledged alerts, sorted by most recent."""
-    return (
-        db.query(Alert)
-        .filter(Alert.acknowledged == False)
-        .order_by(Alert.created_at.desc())
-        .all()
-    )
-
-@router.post("/{alert_id}/ack")
-def acknowledge_alert(alert_id: int, db=Depends(get_db)):
-    """Acknowledge a specific alert by ID."""
-    alert = db.query(Alert).filter(Alert.id == alert_id).first()
-    if not alert:
-        raise HTTPException(status_code=404, detail=f"Alert {alert_id} not found")
-    alert.acknowledged = True
-    db.commit()
-    return {"status": "acknowledged"}
-
-@router.get("/forecast/{source_id}")
-def forecast(source_id: int, db=Depends(get_db)):
-    """Forecast future risk and potential alerts for a water source."""
-    # Get water source
-    source = db.query(WaterSource).filter(WaterSource.id == source_id).first()
-    if not source:
-        raise HTTPException(status_code=404, detail=f"Water source {source_id} not found")
-    
-    # Get historical risk data
-    history = (
-        db.query(RiskHistory)
-        .filter(RiskHistory.water_source_id == source_id)
-        .order_by(RiskHistory.recorded_at.asc())
-        .all()
-    )
-    
-    if not history:
-        return {
-            "source_id": source_id,
-            "forecasted_risk": 0,
-            "alert_level": "low",
-            "potential_alerts": []
-        }
-    
-    # Calculate average trend
-    recent_risks = [h.risk_score for h in history[-10:]]  # Last 10 records
-    current_risk = recent_risks[-1] if recent_risks else 0
-    avg_risk = sum(recent_risks) / len(recent_risks) if recent_risks else 0
-    
-    # Simple forecast: assume trend continues
-    trend = current_risk - avg_risk
-    forecasted_risk = min(100, max(0, current_risk + trend))
-    
-    # Determine alert level
-    if forecasted_risk >= 80:
-        alert_level = "critical"
-    elif forecasted_risk >= 60:
-        alert_level = "high"
-    elif forecasted_risk >= 40:
-        alert_level = "medium"
-    else:
-        alert_level = "low"
-    
-    # Generate potential alerts if risk is elevated
-    potential_alerts = []
-    if forecasted_risk >= 40:
-        if source.water_level and source.water_level < 20:
-            potential_alerts.append({
-                "type": "low_water_level",
-                "message": f"Water level {source.water_level}m is below safety threshold",
-                "severity": "high"
-            })
-        if source.rainfall and source.rainfall < 50:
-            potential_alerts.append({
-                "type": "low_rainfall",
-                "message": f"Rainfall {source.rainfall}mm is insufficient",
-                "severity": "medium"
-            })
-    
-    return {
-        "source_id": source_id,
-        "source_name": source.name,
-        "current_risk": current_risk,
-        "forecasted_risk": round(forecasted_risk, 2),
-        "trend": round(trend, 2),
-        "alert_level": alert_level,
-        "potential_alerts": potential_alerts
-    }
-
-
-@router.get(
-    "/forecast/{source_id}",
-    dependencies=[
-        Depends(require_roles("admin", "analyst", "viewer"))
-    ]
-)
-def forecast(source_id: int, db=Depends(get_db)):
-    ...
-
+from app.models.user import User
+from app.api.deps import get_current_user
 from app.services.push_notifications import PushNotificationService
+from pydantic import BaseModel
+from datetime import datetime
 
-@router.post("/", response_model=AlertResponse)
+router = APIRouter()
+
+# Pydantic schemas for request/response
+class AlertCreate(BaseModel):
+    water_source_id: int
+    level: str  # low, medium, high, critical
+    message: str
+
+class AlertResponse(BaseModel):
+    id: int
+    water_source_id: int
+    level: str
+    message: str
+    acknowledged: bool
+    organization_id: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class AlertAcknowledge(BaseModel):
+    acknowledged: bool = True
+
+@router.get("/", response_model=List[AlertResponse])
+def get_alerts(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get all alerts for current user's organization"""
+    alerts = (
+        db.query(Alert)
+        .filter(Alert.organization_id == current_user.organization_id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+    return alerts
+
+@router.get("/unacknowledged", response_model=List[AlertResponse])
+def get_unacknowledged_alerts(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Get unacknowledged alerts"""
+    alerts = (
+        db.query(Alert)
+        .filter(
+            Alert.organization_id == current_user.organization_id,
+            Alert.acknowledged == False
+        )
+        .all()
+    )
+    return alerts
+
+@router.post("/", response_model=AlertResponse, status_code=status.HTTP_201_CREATED)
 def create_alert(
     alert: AlertCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
     """Create a new alert and send push notifications if critical"""
-    # Get water source
-    source = db.query(WaterSource).filter(WaterSource.id == alert.water_source_id).first()
+    # Verify water source exists and belongs to organization
+    source = (
+        db.query(WaterSource)
+        .filter(
+            WaterSource.id == alert.water_source_id,
+            WaterSource.organization_id == current_user.organization_id
+        )
+        .first()
+    )
+    
     if not source:
-        raise HTTPException(status_code=404, detail="Water source not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Water source not found or access denied"
+        )
 
     # Create alert
     db_alert = Alert(
         water_source_id=alert.water_source_id,
-        level=alert.level,
+        level=alert.level.lower(),
         message=alert.message,
         organization_id=current_user.organization_id,
+        acknowledged=False
     )
     db.add(db_alert)
     db.commit()
     db.refresh(db_alert)
 
     # Send push notification if critical or high
-    if alert.level in ["critical", "high"]:
-        risk_score = source.risk_score or 0
-        PushNotificationService.send_alert_notification(
-            db=db,
-            alert_id=db_alert.id,
-            source_name=source.name,
-            risk_score=risk_score,
-            level=alert.level
-        )
+    if alert.level.lower() in ["critical", "high"]:
+        try:
+            # Calculate risk score from water source data
+            risk_score = calculate_risk_score(source)
+            
+            PushNotificationService.send_alert_notification(
+                db=db,
+                alert_id=db_alert.id,
+                source_name=source.name,
+                risk_score=risk_score,
+                level=alert.level.lower()
+            )
+        except Exception as e:
+            # Log but don't fail the alert creation
+            print(f"Failed to send push notification: {e}")
 
     return db_alert
+
+@router.post("/{alert_id}/acknowledge", response_model=AlertResponse)
+def acknowledge_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Mark an alert as acknowledged"""
+    alert = (
+        db.query(Alert)
+        .filter(
+            Alert.id == alert_id,
+            Alert.organization_id == current_user.organization_id
+        )
+        .first()
+    )
+    
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alert not found or access denied"
+        )
+    
+    alert.acknowledged = True
+    db.commit()
+    db.refresh(alert)
+    
+    return alert
+
+@router.delete("/{alert_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_alert(
+    alert_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """Delete an alert (admin only)"""
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin access required"
+        )
+    
+    alert = (
+        db.query(Alert)
+        .filter(
+            Alert.id == alert_id,
+            Alert.organization_id == current_user.organization_id
+        )
+        .first()
+    )
+    
+    if not alert:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Alert not found or access denied"
+        )
+    
+    db.delete(alert)
+    db.commit()
+    
+    return None
+
+def calculate_risk_score(source: WaterSource) -> float:
+    """Calculate risk score from water source data"""
+    # Use your existing risk calculation logic
+    rainfall_score = max(0, 100 - source.rainfall) if source.rainfall else 50
+    water_level_score = max(0, 100 - source.water_level) if source.water_level else 50
+    
+    risk_score = (rainfall_score * 0.6) + (water_level_score * 0.4)
+    return min(100, max(0, risk_score))

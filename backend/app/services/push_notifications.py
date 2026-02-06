@@ -4,7 +4,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from app.models.user import User, PushNotification
 from app.core.config import get_settings
-from app.core.logging_config import get_logger
+from app.utils.logger import get_logger
 
 logger = get_logger()
 settings = get_settings()

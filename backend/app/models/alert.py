@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, ForeignKey, func
 from datetime import datetime
 from app.core.database import Base
 
@@ -16,3 +16,4 @@ class Alert(Base):
         nullable=False
     )
     created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, onupdate=func.now())
